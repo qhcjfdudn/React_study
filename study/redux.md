@@ -53,14 +53,15 @@ import { Provider } from 'react-redux';
 class ReduxApp extends PureComponent {
   // store = createStore(state => state); 초깃값, 함수 없이 생성 가능
   store = createStore(
-    state => state,
+    state => state, // reducer가 있어야 할 자리. 현재는 단순히 state를 받아
+      				// 다시 state를 리턴하는 구조
     { loading: false, name: '두잇 리액트' },
     window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
   );
 
   render() {
     return (
-      <Provider store={this.store}>
+      <Provider store={this.store}> // this.store는 위에서 만든 store
       리덕스 예제
       </Provider>
     )
@@ -109,7 +110,7 @@ function reducer(state, action) { return state; }
 
 ```javascript
 // 함수이기 때문에 이와 같이 만들 수도 있다.
-const reducer = (state, action) => store + action.payload;
+const reducer = (state, action) => state + action.payload;
 ```
 
 - 리듀서가 반환하는 값의 자료형은 스토어의 이전 데이터와 동일해야 한다.
@@ -139,4 +140,157 @@ componentDidMount() {
 - 리듀서라는 이름은 배열 함수 중 reduce()에서 따온 것
 
 - 리듀서는 변환 함수 배열을 최종 스토어 데이터로 변환
-- 
+
+아래는 실제 Store 클래스의 일부이다
+
+```javascript
+class Store {
+  state = {};
+  dispatch(action) {
+    const reducer1 = state => state;
+    const reducer2 = (state, action) => state + action.payload;
+    /* 여러가지 더 있다. */
+    const reducers = [reducer1, reducer2, /* 여러가지들 */];
+    
+    const updatedState = reducers.reduce(
+      (nextState, reducer) => reducer(nextState, action),
+      this.state
+    );
+    this.state = updatedState;
+  }
+}
+```
+
+
+
+### 리듀서 구현하고 수행해보기
+
+이제까지의 예에서는 단순히 action으로 들어온 값을 그대로 다음 상태로 사용하기만 하였다(state => state). 하지만 실제로는 action의 type 프로퍼티에 따라서 다른 작업을 실행할 수 있도록 구현한다.
+
+1. 리듀서 구현하기
+
+   switch문을 사용하여 각 액션 타입에 맞는 작업 수행하기
+
+   ```javascript
+   const reducer = (state, action) => {
+     const { type, payload } = action;
+     switch (type) {
+       case 'SET_LOADING': {
+         return {
+           ...state,
+           loading: payload,
+         };
+       }
+       case 'RESET_LOADING': {
+         return {
+           ...state,
+           loading: false,
+         };
+       }
+       case 'SET_USER': {
+         return {
+           ...state,
+           user: payload,
+         }
+       }
+       default:
+         return state;
+     }
+   };
+   ```
+
+2. 리듀서 동작 확인해보기
+
+   ```javascript
+   store = createStore(
+       reducer,
+       { loading: false, name: '두잇 리액트' },
+       window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+     );
+     componentDidMount() {
+       this.store.dispatch({
+         type: 'SET_LOADING',
+         payload: true,
+       });
+       this.store.dispatch({
+         type: 'RESET_LOADING',
+       });
+       this.store.dispatch({
+         type: 'SET_USER',
+         payload: {
+           name: 'Park',
+           age: 20,
+         }
+       })
+     }
+   ```
+
+3. 제대로 동작하는지 여부는 크롬 리덕스 확장 도구에서 확인해보자!
+
+
+
+## 리듀서 분리하기
+
+이제까지는 하나의 리듀서가 스토어 전체를 관리하도록 구현하였다. 리듀서(또는 액션)도 마찬가지로 데이터의 종류에 맞게 분리하는 것이 코드를 효율적으로 관리할 수 있어 좋다.
+
+1. 각 리듀서를 데이터 종류에 맞게 분리한다.
+
+   loadingReducer.js
+
+   ```javascript
+   export default function reducer(state, action) {
+     const { type, payload } = action;
+     switch (type) {
+       case 'SET_LOADING': {
+         return {
+           ...state,
+           loading: payload,
+         };
+       }
+       case 'RESET_LOADING': {
+         return {
+           ...state,
+           loading: false,
+         };
+       }
+       default:
+         return state;
+     }
+   };
+   ```
+
+   userReducer.js
+
+   ```javascript
+   export default function reducer(state, action) {
+     const { type, payload } = action;
+     switch (type) {
+       case 'SET_USER': {
+         return {
+           ...state,
+           user: payload,
+         };
+       }
+       default:
+         return state;
+     }
+   };
+   ```
+
+2. 분리한 리듀서가 하나처럼 동작하기 위해 index.js로 묶어 익스포트한다.
+
+   index.js
+
+   ```javascript
+   import loading from './loadingReducer';
+   import user from './userReducer';
+   
+   export default {
+     loading,
+     user,
+   };
+   ```
+
+3. 분리한 리듀서가 스토어에 적용될 수 있도록 스토어 설정 파일을 만든다.
+
+   여러 개의 리듀서는 combineReducers() 함수로 묶어 createStore() 함수의 인자로 전달한다.
