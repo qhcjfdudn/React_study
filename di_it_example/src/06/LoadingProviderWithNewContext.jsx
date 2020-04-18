@@ -10,17 +10,18 @@ export default class LoadingProvider extends PureComponent {
 
     this.state = {};
     this.setLoading = this.setLoading.bind(this);
+    print(this)
   }
-
+  
   setLoading(key, value) {
     const newState = { [key]: value };
-    this.setState(newState);
+    this.setState(newState); // setState()의 동작은 비동기로 동작한다!!
   }
 
   render() {
     const context = {
       ...this.state,
-      setLoading: this.setLoadingm
+      setLoading: this.setLoading
     };
 
     return (
