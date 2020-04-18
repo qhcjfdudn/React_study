@@ -31,3 +31,95 @@ const MyContext = React.createContext(defaultValue); // defaultValue는 {} 요�
 ```
 
 공급자와 소비자는 각각 독립된 저장 공간을 가지면서 짝을 이뤄 데이터를 공유한다.
+
+
+
+1. createContext() 함수로 공급자 만들기
+
+   ```javascript
+   import React, { createContext, PureComponent } from 'react';
+   
+   const { Provider, Consumer } = createContext({});
+   
+   export { Consumer };
+   
+   export default class LoadingProvider extends PureComponent {
+     constructor(props) {
+       super(props);
+   
+       this.state = {};
+       this.setLoading = this.setLoading.bind(this);
+       print(this)
+     }
+     
+   
+     setLoading(key, value) {
+       const newState = { [key]: value };
+       this.setState(newState); // setState()의 동작은 비동기로 동작한다!!
+     }
+   
+     render() {
+       const context = {
+         ...this.state,
+         setLoading: this.setLoading // 함수를 맵핑한다?
+       };
+   
+       return (
+         <Provider value={context}> // value 프로퍼티로 하위 컴포넌트(소비자)에 전달.
+           {this.props.children}
+         </Provider>
+       );
+     }
+   }
+   ```
+
+   
+
+2. 한 개의 공급자를 구독하는 세 개의 소비자 만들기
+
+   Context API의 Consumer 컴포넌트는 아래와 같이 구현되어 있다.
+
+   ```javascript
+   function Consumer({ children }, context) {
+       return children(context);
+   }
+   ```
+
+   이를 참고하여 아래의 소스를 구현해보자.
+
+   ```javascript
+   import React from 'react';
+   import PropTypes from 'prop-types';
+   import Button from './../04/Button';
+   import Consumer from './LoadingProviderWithNewContext';
+   
+   function ButtonWithNewConsumer({ children }) {
+     return (
+       <React.Fragment>
+         <Consumer
+           children={value => (
+             <Button onPress={() => value.setLoading('loading', !value.loading)}>
+               {value.loading ? '로딩 중' : children}
+             </Button>
+           )}
+         />
+         <Consumer
+           children={({ loading2 = false, setLoading }) => (
+             <Button onPress={() => setLoading('loading2', !loading)}>
+               {loading2 ? '로딩 중' : children}
+             </Button>
+           )}
+         />
+         <Consumer
+           children={({ loading = false, loading2 = false}) => (
+             <Button>
+               {loading && loading2 ? '로딩 중' : children}
+             </Button>
+           )}
+         />
+       </React.Fragment>
+     )
+   }
+   ```
+
+   
