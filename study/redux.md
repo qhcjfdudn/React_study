@@ -363,18 +363,173 @@ class Store {
 
 ## 데이터를 위한 컴포넌트 생성
 
-### 화면 컴포넌트 만들기
+redux의 **connect()** 함수를 통해 store의 데이터를 전달할 수 있다. 이를 위한 **두 가지 컴포넌트**를 통해 전체 컴포넌트를 관리한다.
+
+- ContainerComponent : mapStateToProps를 구현한 컴포넌트
+  - mapStateToProps : store의 값을 구독하는 컴포넌트에게 프로퍼티로 변환하여 전달.
+- DispatchContainer : mapDispatchToProps를 구현한 컴포넌트
+  - mapDispatchToProps : 이 함수가 반환하는 객체를 구독하는 컴포넌트에게 프로퍼티로 변환하여 전달.
 
 
 
+ReduxApp.jsx
+
+```react
+import React, { PureComponent } from 'react';
+import { Provider } from 'react-redux';
+import ViewComponent from './ViewComponent';
+import ContainerComponent from './containers/ContainerComponent';
+import configureStore from './configureStore';
+import DispatchContainer01 from './containers/DispatchContainer01';
+
+export const globalStore = configureStore({user: {name: 'hyunjin'}});
+
+class ReduxApp extends PureComponent {
+  // store = configureStore({user: {name: '1231', value: 123312, }});
+  store = globalStore;
+
+  // componentDidMount() { // 기본적으로 store의 데이터를 갱신하는 방법.
+  //   this.store.dispatch({
+  //     type: 'SET_USER',
+  //     payload: {
+  //       user: {
+  //         name: 'gg',
+  //         value: 123,
+  //       }
+  //     }
+  //   });
+  // }
+
+  render() {
+    return <Provider store={this.store}>
+      {console.log('store: ', this.store.getState())}
+      화면 컴포넌트: <ViewComponent userName="화면 컴포넌트" hyunjin={{id: 123, name: 'hyunjin'}}/>
+      <br/>
+      데이터 컴포넌트: <ContainerComponent value={2} />
+      <br/>
+      액션 데이터 컴포넌트: <DispatchContainer01 />
+    </Provider>
+  }
+}
+
+export default ReduxApp;
+```
 
 
 
+configureStore.js
 
-### connect() 함수로 데이터 컴포넌트 만들기
+```react
+// reducer들을 통합할 configureStore 파일을 정의한다.
+import { createStore, combineReducers } from 'redux';
+// import { composeWithDevTools } from 'redux-devtools-extension';
+import reducers from './reducers';
+
+export default initStates => createStore(
+  combineReducers(reducers),
+  initStates,
+  window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+);
+```
 
 
 
+reducers
+
+index.js : createStore()과정에서 리듀서에 여러 개의 리듀서를 등록하려면, combineReducers를 사용해야 하는데, index.js 파일을 통해 
+
+```react
+// import loading from './loadingReducer';
+import user from './userReducer';
+
+export default {
+  user, // 이 값은 key가 되므로, payload를 전달하면서 원하는 형태로 값이 입력되도록 고려.
+};
+```
+
+userReducer.js
+
+```react
+import { SET_AGE } from '../actions/Actions'; // type 관리. Action을 보자.
+
+export default function reducer(state = {}, action) { // state의 초기값을
+  //지정하지 않으면 에러가 발생
+  const { type, payload } = action;
+  switch (type) {
+    case 'SET_USER': {
+      console.log('payload :', payload);
+      return payload.user;
+    }
+    case SET_AGE: {
+      console.log('setAge!!');
+      const { id, age } = payload;
+      return {
+        ...state,
+        id: id,
+        age: age,
+      };
+    }
+    default:
+      console.log('default is called.');
+      console.log('type:', type, 'payload:', payload, 'state:', state);
+      return state;
+  }
+};
+```
 
 
-### 
+
+actions
+
+Actions.js
+
+```react
+export const SET_AGE = 'user/SET_AGE'; // type 관리. 각 reducer마다 관리하면 편하다.
+export const setAge = (id, age) => ({
+  type: SET_AGE,
+  payload: { id, age },
+});
+```
+
+
+
+containers
+
+ContainerComponent.jsx
+
+```react
+import { connect } from 'react-redux';
+import ViewComponent from '../ViewComponent';
+
+// store에서 데이터를 추출하여 객체를 반환하는 역할.
+const mapStateToProps2 = (state, props) => { // provider로부터 얻은 store가 state이당
+  console.log('state', state)
+  console.log('props', props)
+  return {
+    userName: state.user.name,
+    value: props.value,
+  };
+};
+
+
+
+export default connect(mapStateToProps2)(ViewComponent)
+```
+
+DispatchContainer01.jsx
+
+```react
+import { connect } from 'react-redux';
+import ViewComponent2 from '../ViewComponent2';
+
+import { setAge } from '../actions/Actions';
+
+const mapDispatchToProps = dispatch => {
+  return {
+    setAge: (id, age) => dispatch(setAge(id, age)), 
+  };
+};
+
+export default connect(null, mapDispatchToProps)(ViewComponent2);
+```
+
