@@ -1,3 +1,5 @@
+import { SET_AGE } from '../actions/Actions';
+
 export default function reducer(state = {}, action) { // state의 초기값을
   //지정하지 않으면 에러가 발생
   const { type, payload } = action;
@@ -6,10 +8,13 @@ export default function reducer(state = {}, action) { // state의 초기값을
       console.log('payload :', payload);
       return payload.user;
     }
-    case 'RESET_LOADING': {
+    case SET_AGE: {
+      console.log('setAge!!');
+      const { id, age } = payload;
       return {
         ...state,
-        loading: false,
+        id: id,
+        age: age,
       };
     }
     default:

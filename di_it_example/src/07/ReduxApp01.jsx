@@ -5,45 +5,8 @@ import configureStore from './configureStore';
 import { setLoading, resetLoading } from './actions/loadingActions';
 import { setUser } from './actions/userActions';
 
-/*
-const reducer = (state, action) => {
-  const { type, payload } = action;
-  switch (type) {
-    case 'SET_LOADING': {
-      return {
-        ...state,
-        loading: payload,
-      };
-    }
-    case 'RESET_LOADING': {
-      return {
-        ...state,
-        loading: false,
-      };
-    }
-    case 'SET_USER': {
-      return {
-        ...state,
-        user: payload,
-      }
-    }
-    default:
-      return state;
-  }
-};
-*/
 
-class ReduxApp extends PureComponent {
-  // store = createStore(state => state);
-
-  /*
-  store = createStore(
-    reducer,
-    { loading: false, name: '두잇 리액트' },
-    window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
-  );
-  */
- 
+class ReduxApp extends PureComponent { 
   store = configureStore({ loading: false, });
   componentDidMount() {
     this.store.dispatch(setLoading(true));
